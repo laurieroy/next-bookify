@@ -1,8 +1,16 @@
 "use client";
 
+import {
+  Show,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+  useUser,
+} from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -14,6 +22,8 @@ const navItems = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { user } = useUser();
+
   return (
     <header className="w-full fixed z-50 bg-(--bg-primary)">
       <div className="wrapper navbar flex justify-between items-center py-4">
@@ -21,6 +31,7 @@ export default function Navbar() {
           <Image src="/assets/logo.png" alt="Bookify" width={42} height={26} />
           <span className="logo-text">Bookify</span>
         </Link>
+
         <nav className="w-fit flex items-center gap-7.5">
           {navItems.map(({ href, label }) => {
             const isActive =
@@ -38,6 +49,23 @@ export default function Navbar() {
               </Link>
             );
           })}
+
+          <div className="flex gap-7.5 items-center">
+            <Show when="signed-out">
+              <SignInButton />
+              <SignUpButton />
+            </Show>
+            <Show when="signed-in">
+              <div className="nav-user-link">
+                <UserButton />
+                {user?.firstName && (
+                  <Link href="/subscriptions" className="nav-user-name">
+                    {user.firstName}
+                  </Link>
+                )}
+              </div>
+            </Show>
+          </div>
         </nav>
       </div>
     </header>
