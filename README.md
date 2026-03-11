@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bookify
+
+Bookify is a Next.js app for turning books into an interactive reading experience. The goal is to let users upload books, enrich them with metadata, and eventually explore them through AI-powered reading and voice features.
+
+Right now, the project includes:
+
+- A landing page with featured/sample books
+- A form to upload a PDF and optional cover image
+- Metadata inputs for title, author, and voice selection
+- Validation with `react-hook-form` and `zod`
+- UI components built with Tailwind CSS and shadcn-style patterns
+- Vitest test setup for component testing
+
+## Tech Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- React Hook Form + Zod validation
+- Mongoose / MongoDB
+- Clerk Authentication
+- Vitest
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- pnpm
+
+### Install dependencies
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Run the development server
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Learn More
+## Current Status
 
-To learn more about Next.js, take a look at the following resources:
+This project is **in active development**.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Implemented so far:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Home page UI
+- Book card display using sample data
+- “Add a New Book” page
+- Client-side book upload form
+- File upload inputs for PDF and optional cover image
+- Voice selection field
+- Loading state during submission
 
-## Deploy on Vercel
+Still in progress / not yet wired end-to-end:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Persistent book creation
+- PDF processing pipeline
+- Cover auto-generation
+- Voice synthesis / audio generation
+- Authentication-gated workflows
+- Production-ready data flow from form submission to database
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Testing
+
+This project uses Vitest with Testing Library.
+
+Run tests with:
+
+```bash
+pnpm test
+```
+
+## Roadmap
+
+- Connect the upload form to a server action or API route
+- Store books in MongoDB
+- Parse uploaded PDFs
+- Generate or upload cover images
+- Add authenticated book management workflows
+- Build the reading experience for uploaded books
+- Add voice/audio features
+
+## License
+
+Private project for learning and development. 
+
+Original project following a tutorial by [JavaScript Mastery](https://www.youtube.com/watch?v=NiwawEe92Co).
+
