@@ -4,6 +4,9 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ImageIcon, Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -24,9 +27,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { toast } from "sonner";
+import { checkBookExists, saveBookSegments } from "@/lib/actions/book.actions";
+import { parsePDFFile } from "@/lib/utils";
 
 export function NewBookForm() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { userId } = useAuth();
 
   const form = useForm<BookUploadFormValues>({
     resolver: zodResolver(UploadSchema),
@@ -35,19 +43,115 @@ export function NewBookForm() {
       coverImage: undefined,
       title: "",
       author: "",
-      voice: DEFAULT_VOICE,
+      persona: "",
     },
   });
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  const handleSubmit = form.handleSubmit(async (data: BookUploadFormValues) => {
+    if (!userId) {
+      return toast.error("Please login to upload books");
+    }
+
     setIsSubmitting(true);
 
+    // PostHog => Track book uploads
+
     try {
-      await new Promise((resolve) => {
-        window.setTimeout(resolve, 1200);
+      const existsCheck = await checkBookExists(data.title);
+
+      if (existsCheck && existsCheck.book) {
+        toast.info("Book with this title already exists");
+        form.reset();
+        router.push(`/books/${existsCheck.book.slug}`);
+        return;
+      }
+
+      const fileTitle =
+        data.title.replace(/\s+/g, "-").toLowerCase() || "untitled";
+      const pdfFile = data.pdfFile;
+
+      const parsedPdf = await parsePDFFile(pdfFile);
+
+      if (parsedPdf.content.length === 0) {
+        toast.error(
+          "No content found in the PDF file. Try again with a different file.",
+        );
+        return;
+      }
+
+      const uploadedPdfBlob = await upload(fileTitle, pdfFile, {
+        access: "public",
+        contentType: "application/pdf",
+        handleUploadUrl: "/api/upload",
       });
 
-      console.log("Book upload form submitted", values);
+      let coverUrl: string | undefined;
+
+      if (data.coverImage && data.coverImage.size > 0) {
+        const coverFile = data.coverImage;
+        const uploadedCoverBlob = await upload(
+          `${fileTitle}-cover.png`,
+          coverFile,
+          {
+            access: "public",
+            contentType: coverFile.type,
+            handleUploadUrl: "/api/upload",
+          },
+        );
+
+        coverUrl = uploadedCoverBlob.url;
+      } else {
+        const response = await fetch(parsedPdf.coverImage);
+        const blob = await response.blob();
+        const uploadedCoverBlob = await upload(`${fileTitle}-cover.png`, blob, {
+          access: "public",
+          contentType: "image/png",
+          handleUploadUrl: "/api/upload",
+        });
+        coverUrl = uploadedCoverBlob.url;
+      }
+
+      console.log("Book upload form submitted", data);
+      const book = await createBook({
+        clerkId: userId,
+        title: data.title,
+        author: data.author,
+        fileURL: uploadedPdfBlob.url,
+        fileBlobKey: uploadedPdfBlob.pathname,
+        coverURL: coverUrl,
+        persona: data.persona,
+        filesize: pdfFile.size,
+      });
+
+      if (!book.success) {
+        throw new Error("Failed to create book.");
+      }
+
+      if (book.alreadyExists) {
+        toast.info("Book already exists.");
+        form.reset();
+        router.push(`/books/${book.existsCheck.book.slug}`);
+        return;
+      }
+
+      console.log("Book created", book);
+
+      const segments = await saveBookSegments({
+        clerkId: userId,
+        bookId: book.data._id,
+        segments: parsedPdf.content,
+      });
+
+      if (!segments.success) {
+        toast.error("Failed to save book segments.");
+        throw new Error("Failed to save book segments.");
+      }
+
+      form.reset();
+      router.push("/");
+    } catch (error) {
+      console.error("Error uploading book", error);
+      toast.error("Error uploading book. Please try again later.");
     } finally {
       setIsSubmitting(false);
     }
@@ -119,7 +223,11 @@ export function NewBookForm() {
             )}
           />
 
-          <VoiceSelectorField form={form} name="voice" disabled={isSubmitting} />
+          <VoiceSelectorField
+            form={form}
+            name="voice"
+            disabled={isSubmitting}
+          />
 
           <Button type="submit" disabled={isSubmitting} className="form-btn">
             Begin Synthesis

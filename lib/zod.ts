@@ -13,7 +13,7 @@ const pdfFileSchema = z
     message: "The uploaded file must be a PDF.",
   })
   .refine((file) => file.size <= MAX_FILE_SIZE, {
-    message: "PDF file must be 50MB or smaller.",
+    message: `PDF file must be ${MAX_FILE_SIZE}MB or smaller.`,
   });
 
 const imageFileSchema = z
@@ -30,7 +30,7 @@ export const UploadSchema = z.object({
   coverImage: imageFileSchema.optional(),
   title: z.string().trim().min(1, "Title is required."),
   author: z.string().trim().min(1, "Author name is required."),
-  voice: z.enum(
+  persona: z.enum(
     Object.values(voiceOptions).map((voice) => voice.id) as [
       string,
       ...string[],
