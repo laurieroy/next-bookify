@@ -28,7 +28,13 @@ export default function Navbar() {
     <header className="w-full fixed z-50 bg-(--bg-primary)">
       <div className="wrapper navbar flex justify-between items-center py-4">
         <Link href="/" className="flex gap-0.5 items-center">
-          <Image src="/assets/logo.png" alt="Bookify" width={42} height={26} />
+          <Image
+            src="/assets/logo.png"
+            alt="Bookify"
+            width={42}
+            height={26}
+            style={{ height: "auto" }}
+          />
           <span className="logo-text">Bookify</span>
         </Link>
 
