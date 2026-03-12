@@ -28,8 +28,8 @@ export function generateSlug(text: string): string {
       .split(":")[0] // Remove everything after colon (for titles like "Book: Chapter 1")
       .toLowerCase()
       .trim()
-      .replace(/[^\w\s-]/g, "") // Remove special characters (except spaces and hyphens)
-      // .replace(/[^a-z0-9]+/g, "-") // Replace special characters with hyphens
+      // .replace(/[^\w\s-]/g, "-") // Remove special characters (except word chars, spaces and hyphens)
+      .replace(/[^a-z0-9]+/g, "-") // Replace special characters with hyphens
       .replace(/^-+|-+$/g, "")
   ); // Remove leading/trailing hyphens
 }
