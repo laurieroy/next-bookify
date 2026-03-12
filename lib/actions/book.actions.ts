@@ -1,8 +1,8 @@
 "use server";
 
 import { connectToDatabase } from "@/database/mongoose";
-import type { CreateBook, TextSegment } from "./../types";
-import { generateSlug, serializeData } from "../utils";
+import type { CreateBook, TextSegment } from "@/lib/types";
+import { generateSlug, serializeData } from "@/lib/utils";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
 
@@ -10,7 +10,7 @@ type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-export async function checkBookExists(title: string) {
+export async function checkBookExistsAction(title: string) {
   try {
     await connectToDatabase();
 
@@ -24,7 +24,7 @@ export async function checkBookExists(title: string) {
         book: serializeData(existingBook),
       };
     }
-    
+
     return {
       exists: false,
       book: null,
@@ -33,7 +33,7 @@ export async function checkBookExists(title: string) {
     console.error("Error checking book exists:", error);
     return {
       exists: false,
-      error: (error as Error).message,
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -71,12 +71,12 @@ export async function createBookAction({ data }: { data: CreateBook }) {
     console.error("Error creating book:", error);
     return {
       success: false,
-      error: (error as Error) ? error.message : "Unknown error",
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
 
-export async function saveBookSegments({
+export async function saveBookSegmentsAction({
   bookId,
   clerkId,
   segments,
@@ -116,7 +116,7 @@ export async function saveBookSegments({
     console.log("Deleted book segments and book due to save segments failure");
     return {
       success: false,
-      error: (error as Error).message,
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }

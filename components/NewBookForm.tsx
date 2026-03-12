@@ -28,7 +28,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
-import { checkBookExists, saveBookSegments } from "@/lib/actions/book.actions";
+import {
+  checkBookExistsAction,
+  createBookAction,
+  saveBookSegmentsAction,
+} from "@/lib/actions/book.actions";
 import { parsePDFFile } from "@/lib/utils";
 
 export function NewBookForm() {
@@ -43,7 +47,7 @@ export function NewBookForm() {
       coverImage: undefined,
       title: "",
       author: "",
-      persona: "",
+      persona: DEFAULT_VOICE,
     },
   });
 
@@ -57,7 +61,7 @@ export function NewBookForm() {
     // PostHog => Track book uploads
 
     try {
-      const existsCheck = await checkBookExists(data.title);
+      const existsCheck = await checkBookExistsAction(data.title);
 
       if (existsCheck && existsCheck.book) {
         toast.info("Book with this title already exists");
@@ -112,15 +116,17 @@ export function NewBookForm() {
       }
 
       console.log("Book upload form submitted", data);
-      const book = await createBook({
-        clerkId: userId,
-        title: data.title,
-        author: data.author,
-        fileURL: uploadedPdfBlob.url,
-        fileBlobKey: uploadedPdfBlob.pathname,
-        coverURL: coverUrl,
-        persona: data.persona,
-        filesize: pdfFile.size,
+      const book = await createBookAction({
+        data: {
+          clerkId: userId,
+          title: data.title,
+          author: data.author,
+          fileURL: uploadedPdfBlob.url,
+          fileBlobKey: uploadedPdfBlob.pathname,
+          coverURL: coverUrl,
+          persona: data.persona,
+          fileSize: pdfFile.size,
+        },
       });
 
       if (!book.success) {
@@ -130,13 +136,13 @@ export function NewBookForm() {
       if (book.alreadyExists) {
         toast.info("Book already exists.");
         form.reset();
-        router.push(`/books/${book.existsCheck.book.slug}`);
+        router.push(`/books/${book.data.slug}`);
         return;
       }
 
       console.log("Book created", book);
 
-      const segments = await saveBookSegments({
+      const segments = await saveBookSegmentsAction({
         clerkId: userId,
         bookId: book.data._id,
         segments: parsedPdf.content,
@@ -225,7 +231,7 @@ export function NewBookForm() {
 
           <VoiceSelectorField
             form={form}
-            name="voice"
+            name="persona"
             disabled={isSubmitting}
           />
 
