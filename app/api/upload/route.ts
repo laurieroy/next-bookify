@@ -1,12 +1,12 @@
+import { NextResponse } from "next/server";
+
 import { MAX_FILE_SIZE } from "@/lib/constants";
 import { auth } from "@clerk/nextjs/server";
 import { handleUpload, HandleUploadBody } from "@vercel/blob/client";
-import { NextResponse } from "next/server";
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
-
   try {
+    const body = (await request.json()) as HandleUploadBody;
     const jsonResponse = await handleUpload({
       token: process.env.bookify_READ_WRITE_TOKEN!,
       body,
@@ -38,6 +38,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         const payload = tokenPayload
           ? JSON.parse(tokenPayload as string)
           : null;
+
         const userId = payload?.userId;
 
         // TODO: PostHog tracking
@@ -48,6 +49,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const status = message.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: message }, { status });
+    console.error("Upload error:", error);
+    const clientMessage = message.includes("Unauthorized")
+      ? "Unauthorized"
+      : "Internal server error";
+    return NextResponse.json({ error: clientMessage }, { status });
   }
 }

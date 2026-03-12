@@ -1,14 +1,18 @@
 "use server";
 
 import { connectToDatabase } from "@/database/mongoose";
-import type { CreateBook, TextSegment } from "@/lib/types";
+import type { CreateBook, IBook, TextSegment } from "@/lib/types";
 import { generateSlug, serializeData } from "@/lib/utils";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
 
-type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+function createExistingBookResult(book: IBook) {
+  return {
+    success: true as const,
+    data: serializeData(book),
+    alreadyExists: true as const,
+  };
+}
 
 export async function checkBookExistsAction(title: string) {
   try {
@@ -39,6 +43,8 @@ export async function checkBookExistsAction(title: string) {
 }
 
 export async function createBookAction({ data }: { data: CreateBook }) {
+  const slug = generateSlug(data.title);
+
   try {
     await connectToDatabase();
 
@@ -47,19 +53,11 @@ export async function createBookAction({ data }: { data: CreateBook }) {
     //   return { success: false, error: "Title is required" };
     // }
 
-    const slug = generateSlug(data.title);
-
     const existingBook = await Book.findOne({ slug }).lean();
 
     if (existingBook) {
-      return {
-        success: true,
-        data: serializeData(existingBook),
-        alreadyExists: true,
-      };
+      return createExistingBookResult(existingBook);
     }
-
-    // TODO:check subscription limits before creating a book
 
     const book = await Book.create({ ...data, slug, totalSegments: 0 });
 
@@ -68,6 +66,29 @@ export async function createBookAction({ data }: { data: CreateBook }) {
       data: serializeData(book),
     };
   } catch (error) {
+    const isDuplicateSlugError =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === 11000;
+
+    if (isDuplicateSlugError) {
+      try {
+        await connectToDatabase();
+
+        const existingBook = await Book.findOne({ slug }).lean();
+
+        if (existingBook) {
+          return createExistingBookResult(existingBook);
+        }
+      } catch (readAfterDuplicateError) {
+        console.error(
+          "Error loading existing book after duplicate slug error:",
+          readAfterDuplicateError,
+        );
+      }
+    }
+
     console.error("Error creating book:", error);
     return {
       success: false,

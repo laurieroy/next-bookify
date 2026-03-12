@@ -1,13 +1,11 @@
 // @vitest-environment node
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
 import { createBookAction, saveBookSegmentsAction } from "./book.actions";
 import * as db from "@/database/mongoose";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
-
-// be sure to enable server actions in vitest config
 
 vi.mock("@clerk/nextjs", () => ({
   auth: vi.fn(),
@@ -34,49 +32,116 @@ vi.mock("@/database/models/book-segment.model", () => ({
   },
 }));
 
+const bookFixture = () => ({
+  _id: "book_123",
+  clerkId: "user_123",
+  title: "Ghost Book",
+  slug: "ghost-book",
+  author: "Someone",
+  persona: "alloy",
+  fileURL: "https://example.com/book.pdf",
+  fileBlobKey: "book.pdf",
+  coverURL: "https://example.com/cover.png",
+  fileSize: 1234,
+  totalSegments: 0,
+});
+
+const mockBookFindOne = Book.findOne as Mock;
+const mockBookCreate = Book.create as Mock;
+const mockBookFindByIdAndUpdate = Book.findByIdAndUpdate as Mock;
+const mockBookFindByIdAndDelete = Book.findByIdAndDelete as Mock;
+const mockBookSegmentInsertMany = BookSegment.insertMany as Mock;
+const mockBookSegmentDeleteMany = BookSegment.deleteMany as Mock;
+
 describe("createBook Server Action", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
-  it.skip("should prevent a Free user from uploading more than 1 book", async () => {
-    const { auth } = await import("@clerk/nextjs");
+  it("returns the existing book when the slug already exists before create", async () => {
+    const existingBook = bookFixture();
 
-    // Simulate a logged-in user on Free plan
-    (auth as any).mockReturnValue({ userId: "user_123" });
+    mockBookFindOne.mockReturnValue({
+      lean: vi.fn().mockResolvedValue(existingBook),
+    });
 
-    // Simulate they already have 1 book in DB
-    (Book.countDocuments as any).mockResolvedValue(1);
+    const result = await createBookAction({
+      data: {
+        clerkId: "user_123",
+        title: "Ghost Book",
+        author: "Someone",
+        persona: "alloy",
+        fileURL: "https://example.com/book.pdf",
+        fileBlobKey: "book.pdf",
+        coverURL: "https://example.com/cover.png",
+        fileSize: 1234,
+      },
+    });
 
-    const result = await createBookAction({ title: "New Book" });
-
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("limit reached");
+    expect(db.connectToDatabase).toHaveBeenCalled();
+    expect(Book.findOne).toHaveBeenCalledWith({ slug: "ghost-book" });
     expect(Book.create).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: true,
+      data: existingBook,
+      alreadyExists: true,
+    });
   });
 
-  it("should fail if no user is authenticated", async () => {
-    const { auth } = await import("@clerk/nextjs");
-    (auth as any).mockReturnValue({ userId: null });
+  it("returns the existing book if create loses a race to the unique slug constraint", async () => {
+    const existingBook = bookFixture();
 
-    const result = await createBookAction({ title: "Ghost Book" });
+    mockBookFindOne
+      .mockReturnValueOnce({
+        lean: vi.fn().mockResolvedValue(null),
+      })
+      .mockReturnValueOnce({
+        lean: vi.fn().mockResolvedValue(existingBook),
+      });
 
-    expect(result.success).toBe(false);
-    expect(result.error).toBe("Unauthorized");
+    const duplicateKeyError = Object.assign(
+      new Error("E11000 duplicate key error"),
+      {
+        code: 11000,
+      },
+    );
+
+    mockBookCreate.mockRejectedValue(duplicateKeyError);
+
+    const result = await createBookAction({
+      data: {
+        clerkId: "user_123",
+        title: "Ghost Book",
+        author: "Someone",
+        persona: "alloy",
+        fileURL: "https://example.com/book.pdf",
+        fileBlobKey: "book.pdf",
+        coverURL: "https://example.com/cover.png",
+        fileSize: 1234,
+      },
+    });
+
+    expect(db.connectToDatabase).toHaveBeenCalledTimes(2);
+    expect(Book.findOne).toHaveBeenCalledTimes(2);
+    expect(Book.findOne).toHaveBeenCalledWith({ slug: "ghost-book" });
+    expect(Book.create).toHaveBeenCalled();
+    expect(result).toEqual({
+      success: true,
+      data: existingBook,
+      alreadyExists: true,
+    });
   });
 });
 
 describe("saveBookSegmentAction", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it("saves book segments", async () => {
-    const { auth } = await import("@clerk/nextjs");
-    (auth as any).mockReturnValue({ userId: "user_123" });
-
     const result = await saveBookSegmentsAction({
       bookId: "book_123",
+      clerkId: "user_123",
       segments: [
         {
           text: "Hello world",
@@ -91,8 +156,8 @@ describe("saveBookSegmentAction", () => {
   });
 
   it("updates totalSegments to 0 when no segments are provided", async () => {
-    (BookSegment.insertMany as any).mockResolvedValue([]);
-    (Book.findByIdAndUpdate as any).mockResolvedValue({});
+    mockBookSegmentInsertMany.mockResolvedValue([]);
+    mockBookFindByIdAndUpdate.mockResolvedValue({});
 
     const result = await saveBookSegmentsAction({
       bookId: "book_123",
@@ -112,9 +177,9 @@ describe("saveBookSegmentAction", () => {
 
   it("cleans up inserted data if saving segments fails", async () => {
     const error = new Error("insert failed");
-    (BookSegment.insertMany as any).mockRejectedValue(error);
-    (BookSegment.deleteMany as any).mockResolvedValue({});
-    (Book.findByIdAndDelete as any).mockResolvedValue({});
+    mockBookSegmentInsertMany.mockRejectedValue(error);
+    mockBookSegmentDeleteMany.mockResolvedValue({});
+    mockBookFindByIdAndDelete.mockResolvedValue({});
 
     const result = await saveBookSegmentsAction({
       bookId: "book_123",

@@ -51,6 +51,12 @@ export function NewBookForm() {
     },
   });
 
+  const redirectToExistingBook = (slug: string, message: string) => {
+    toast.info(message);
+    form.reset();
+    router.push(`/books/${slug}`);
+  };
+
   const handleSubmit = form.handleSubmit(async (data: BookUploadFormValues) => {
     if (!userId) {
       return toast.error("Please login to upload books");
@@ -64,9 +70,10 @@ export function NewBookForm() {
       const existsCheck = await checkBookExistsAction(data.title);
 
       if (existsCheck && existsCheck.book) {
-        toast.info("Book with this title already exists");
-        form.reset();
-        router.push(`/books/${existsCheck.book.slug}`);
+        redirectToExistingBook(
+          existsCheck.book.slug,
+          "Book with this title already exists",
+        );
         return;
       }
 
@@ -134,9 +141,7 @@ export function NewBookForm() {
       }
 
       if (book.alreadyExists) {
-        toast.info("Book already exists.");
-        form.reset();
-        router.push(`/books/${book.data.slug}`);
+        redirectToExistingBook(book.data.slug, "Book already exists.");
         return;
       }
 
