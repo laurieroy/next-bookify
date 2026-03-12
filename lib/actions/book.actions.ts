@@ -76,6 +76,25 @@ export async function createBookAction({ data }: { data: CreateBook }) {
   }
 }
 
+export async function getAllBooksAction() {
+  try {
+    await connectToDatabase();
+
+    const books = await Book.find().sort({ createdAt: -1 }).lean();
+
+    return {
+      success: true,
+      data: serializeData(books),
+    };
+  } catch (error) {
+    console.error("Error getting all books:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
 export async function saveBookSegmentsAction({
   bookId,
   clerkId,

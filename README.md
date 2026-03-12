@@ -29,6 +29,10 @@ Right now, the project includes:
 - Node.js 20+
 - pnpm
 
+### Update .env.local
+
+Copy the `.env.local.example` file to `.env.local` and update the values with your own. You will need to create a MongoDB database, a Clerk account and Vercel to store your data and authentication.
+
 ### Install dependencies
 
 ```bash
@@ -74,6 +78,8 @@ Run tests with:
 
 ```bash
 pnpm test
+pnpm test:frontend
+pnpm test:backend
 ```
 
 ## Roadmap
@@ -85,10 +91,22 @@ pnpm test
 - Add authenticated book management workflows
 - Build the reading experience for uploaded books
 - Add voice/audio features
+- Server side authentication with Clerk instead of relying on UI-only auth
+
 
 ## License
 
 Private project for learning and development. 
+
+Implemented features:
+- Home page UI
+- Book card display using sample data
+- "Add a New Book" page
+- Client-side book upload form
+- File upload inputs for PDF and optional cover image
+- Voice selection field
+- Loading state during submission
+
 
 Original project following a tutorial by [JavaScript Mastery](https://www.youtube.com/watch?v=NiwawEe92Co).
 
