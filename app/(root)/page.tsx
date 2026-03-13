@@ -10,7 +10,7 @@ export default async function Home() {
     <main className="wrapper container">
       <HeroSection />
 
-      <div className="library-books-grid">
+      <div id="library" className="library-books-grid">
         {books.map((book) => (
           <BookCard key={book._id} {...book} />
         ))}
