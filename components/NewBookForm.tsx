@@ -7,13 +7,14 @@ import { useForm } from "react-hook-form";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
+import z from "zod";
 
 import {
   ACCEPTED_IMAGE_TYPES,
   ACCEPTED_PDF_TYPES,
   DEFAULT_VOICE,
 } from "@/lib/constants";
-import { BookUploadFormValues } from "@/lib/types";
+import type { BookUploadFormValues, CreateBookActionResult } from "@/lib/types";
 import { UploadSchema } from "@/lib/zod";
 import { FileUploader } from "@/components/FileUploader";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
@@ -40,7 +41,11 @@ export function NewBookForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { userId } = useAuth();
 
-  const form = useForm<BookUploadFormValues>({
+  const form = useForm<
+    z.input<typeof UploadSchema>,
+    unknown,
+    BookUploadFormValues
+  >({
     resolver: zodResolver(UploadSchema),
     defaultValues: {
       pdfFile: undefined,
@@ -112,7 +117,7 @@ export function NewBookForm() {
 
         coverUrl = uploadedCoverBlob.url;
       } else {
-        const response = await fetch(parsedPdf.coverImage);
+        const response = await fetch(parsedPdf.cover);
         const blob = await response.blob();
         const uploadedCoverBlob = await upload(`${fileTitle}-cover.png`, blob, {
           access: "public",
@@ -140,7 +145,7 @@ export function NewBookForm() {
         throw new Error("Failed to create book.");
       }
 
-      if (book.alreadyExists) {
+      if (book.status === "existing") {
         redirectToExistingBook(book.data.slug, "Book already exists.");
         return;
       }

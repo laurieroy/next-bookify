@@ -84,7 +84,7 @@ describe("createBook Server Action", () => {
     expect(result).toEqual({
       success: true,
       data: existingBook,
-      alreadyExists: true,
+      status: "existing",
     });
   });
 
@@ -128,7 +128,7 @@ describe("createBook Server Action", () => {
     expect(result).toEqual({
       success: true,
       data: existingBook,
-      alreadyExists: true,
+      status: "existing",
     });
   });
 });

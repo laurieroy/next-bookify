@@ -1,16 +1,21 @@
 "use server";
 
 import { connectToDatabase } from "@/database/mongoose";
-import type { CreateBook, IBook, TextSegment } from "@/lib/types";
+import type {
+  CreateBook,
+  CreateBookActionResult,
+  IBook,
+  TextSegment,
+} from "@/lib/types";
 import { generateSlug, serializeData } from "@/lib/utils";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
 
-function createExistingBookResult(book: IBook) {
+function createExistingBookResult(book: IBook): CreateBookActionResult {
   return {
     success: true as const,
+    status: "existing",
     data: serializeData(book),
-    alreadyExists: true as const,
   };
 }
 
@@ -42,7 +47,11 @@ export async function checkBookExistsAction(title: string) {
   }
 }
 
-export async function createBookAction({ data }: { data: CreateBook }) {
+export async function createBookAction({
+  data,
+}: {
+  data: CreateBook;
+}): Promise<CreateBookActionResult> {
   const slug = generateSlug(data.title);
 
   try {
@@ -63,6 +72,7 @@ export async function createBookAction({ data }: { data: CreateBook }) {
 
     return {
       success: true,
+      status: "created",
       data: serializeData(book),
     };
   } catch (error) {
@@ -109,6 +119,32 @@ export async function getAllBooksAction() {
     };
   } catch (error) {
     console.error("Error getting all books:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export async function getBookBySlugAction(slug: string) {
+  try {
+    await connectToDatabase();
+
+    const book = await Book.findOne({ slug }).lean();
+
+    if (!book) {
+      return {
+        success: false,
+        data: null,
+      };
+    }
+
+    return {
+      success: true,
+      data: serializeData(book),
+    };
+  } catch (error) {
+    console.error("Error getting book by slug:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

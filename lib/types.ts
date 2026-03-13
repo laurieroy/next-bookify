@@ -75,6 +75,11 @@ export interface CreateBook {
   fileSize: number;
 }
 
+export type CreateBookActionResult =
+  | { success: true; status: "created"; data: IBook }
+  | { success: true; status: "existing"; data: IBook }
+  | { success: false; error: string };
+
 export interface Messages {
   role: string;
   content: string;
