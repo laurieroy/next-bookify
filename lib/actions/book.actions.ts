@@ -130,7 +130,22 @@ export async function getBookBySlugAction(slug: string) {
   try {
     await connectToDatabase();
 
-    const book = await Book.findOne({ slug }).lean();
+    const normalizedCandidates = Array.from(
+      new Set(
+        [
+          slug,
+          decodeURIComponent(slug),
+          slug.trim().toLowerCase(),
+          decodeURIComponent(slug).trim().toLowerCase(),
+          generateSlug(slug),
+          generateSlug(decodeURIComponent(slug)),
+        ].filter(Boolean),
+      ),
+    );
+
+    const book = await Book.findOne({
+      slug: { $in: normalizedCandidates },
+    }).lean();
 
     if (!book) {
       return {

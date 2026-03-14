@@ -45,7 +45,7 @@ export default async function BookDetailsPage({
           <section className="vapi-header-card flex-col items-start sm:flex-row">
             <div className="vapi-cover-wrapper">
               <Image
-                src={book.coverURL || "/images/book-placeholder.png"}
+                src={book.coverURL || ""}
                 alt={book.title}
                 width={120}
                 height={180}

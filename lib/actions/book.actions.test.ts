@@ -2,7 +2,11 @@
 
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 
-import { createBookAction, saveBookSegmentsAction } from "./book.actions";
+import {
+  createBookAction,
+  getBookBySlugAction,
+  saveBookSegmentsAction,
+} from "./book.actions";
 import * as db from "@/database/mongoose";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
@@ -196,5 +200,45 @@ describe("saveBookSegmentAction", () => {
       bookId: "book_123",
     });
     expect(Book.findByIdAndDelete).toHaveBeenCalledWith("book_123");
+  });
+});
+
+describe("getBookBySlugAction", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("looks up books using normalized slug candidates", async () => {
+    const existingBook = {
+      ...bookFixture(),
+      title: "Rails 5 Test Prescriptions",
+      slug: "rails-5-test-prescriptions",
+    };
+
+    mockBookFindOne.mockReturnValue({
+      lean: vi.fn().mockResolvedValue(existingBook),
+    });
+
+    const result = await getBookBySlugAction(
+      "Rails%205%20Test%20Prescriptions",
+    );
+
+    expect(db.connectToDatabase).toHaveBeenCalled();
+    expect(Book.findOne).toHaveBeenCalledWith({
+      slug: {
+        $in: [
+          "Rails%205%20Test%20Prescriptions",
+          "Rails 5 Test Prescriptions",
+          "rails%205%20test%20prescriptions",
+          "rails 5 test prescriptions",
+          "rails-205-20test-20prescriptions",
+          "rails-5-test-prescriptions",
+        ],
+      },
+    });
+    expect(result).toEqual({
+      success: true,
+      data: existingBook,
+    });
   });
 });
