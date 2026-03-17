@@ -16,6 +16,8 @@ export default defineConfig({
             "components/**/*.test.tsx",
             "app/**/*.test.ts",
             "components/**/*.test.ts",
+            "hooks/**/*.test.ts",
+            "hooks/**/*.test.tsx",
           ],
           environment: "jsdom",
           setupFiles: ["./test/setup.ts"],
@@ -25,7 +27,11 @@ export default defineConfig({
         extends: true,
         test: {
           name: "backend",
-          include: ["lib/**/*.test.ts", "database/**/*.test.ts", "app/api/**/*.test.ts"],
+          include: [
+            "lib/**/*.test.ts",
+            "database/**/*.test.ts",
+            "app/api/**/*.test.ts",
+          ],
           environment: "node",
         },
       },

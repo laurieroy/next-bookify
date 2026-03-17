@@ -6,8 +6,8 @@ import VoiceSession from "@/database/models/voice-session.model";
 import { getCurrentBillingPeriodStart } from "@/lib/subscription-constants";
 
 export async function startVoiceSessionAction(
-  bookId: string,
   clerkId: string,
+  bookId: string,
 ): Promise<StartSessionResult> {
   try {
     await connectToDatabase();
@@ -15,8 +15,9 @@ export async function startVoiceSessionAction(
     // TODO: Check Limits/Plan
 
     const session = await VoiceSession.create({
-      bookId,
       clerkId,
+      bookId,
+
       startedAt: new Date(),
       billingPeriodStart: getCurrentBillingPeriodStart(),
       durationSeconds: 0,

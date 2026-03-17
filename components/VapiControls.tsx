@@ -9,7 +9,7 @@ import { IBook } from "@/lib/types";
 
 const VapiControls = ({ book }: { book: IBook }) => {
   const {
-    clearErrors,
+    clearError,
     currentMessage,
     currentUserMessage,
     duration,
