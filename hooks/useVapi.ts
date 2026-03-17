@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import Vapi from "@vapi-ai/web";
 import { useAuth } from "@clerk/nextjs";
@@ -116,9 +115,10 @@ export function useVapi(book: IBook) {
 
         // End session tracking
         if (sessionIdRef.current) {
-          endVoiceSessionAction(sessionIdRef.current, durationRef.current).catch(
-            (err) => console.error("Failed to end voice session:", err),
-          );
+          endVoiceSessionAction(
+            sessionIdRef.current,
+            durationRef.current,
+          ).catch((err) => console.error("Failed to end voice session:", err));
           sessionIdRef.current = null;
         }
 
@@ -200,9 +200,11 @@ export function useVapi(book: IBook) {
 
         // End session tracking on error
         if (sessionIdRef.current) {
-          endVoiceSessionAction(sessionIdRef.current, durationRef.current).catch(
-            (err) =>
-              console.error("Failed to end voice session on error:", err),
+          endVoiceSessionAction(
+            sessionIdRef.current,
+            durationRef.current,
+          ).catch((err) =>
+            console.error("Failed to end voice session on error:", err),
           );
           sessionIdRef.current = null;
         }
@@ -302,6 +304,16 @@ export function useVapi(book: IBook) {
       });
     } catch (err) {
       console.error("Failed to start call:", err);
+      if (sessionIdRef.current) {
+        endVoiceSessionAction(sessionIdRef.current, 0).catch((endErr) => {
+          console.error(
+            "Failed to rollback voice session after start failure:",
+            endErr,
+          );
+
+          sessionIdRef.current = null;
+        });
+      }
       setStatus("idle");
       setLimitError("Failed to start voice session. Please try again.");
     }
