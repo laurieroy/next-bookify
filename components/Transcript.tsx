@@ -81,10 +81,7 @@ export function Transcript({
               >
                 <span>{message.content}</span>
                 {message.streaming ? (
-                  <span
-                    aria-hidden="true"
-                    className="transcript-cursor"
-                  />
+                  <span aria-hidden="true" className="transcript-cursor" />
                 ) : null}
               </div>
             </div>

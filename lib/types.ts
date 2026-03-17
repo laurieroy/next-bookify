@@ -116,6 +116,14 @@ export interface InputFieldProps<T extends FieldValues> {
   disabled?: boolean;
 }
 
+export interface StartSessionResult {
+  success: boolean;
+  sessionId?: string;
+  maxDurationMinutes?: number;
+  error?: string;
+  isBillingError?: boolean;
+}
+
 export interface VoiceSelectorProps {
   disabled?: boolean;
   className?: string;

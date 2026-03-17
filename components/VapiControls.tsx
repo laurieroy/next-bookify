@@ -1,15 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { MicOff } from "lucide-react";
+import { Mic, MicOff } from "lucide-react";
 
 import { Transcript } from "@/components/Transcript";
-import { useVapi } from "@/hooks/useVapi";
+import useVapi from "@/hooks/useVapi";
 import { IBook } from "@/lib/types";
 
 const VapiControls = ({ book }: { book: IBook }) => {
   const {
-    clearError,
+    clearErrors,
     currentMessage,
     currentUserMessage,
     duration,
@@ -20,6 +20,9 @@ const VapiControls = ({ book }: { book: IBook }) => {
     start,
     stop,
   } = useVapi(book);
+
+  const isPinging =
+    isActive && (status === "thinking" || status === "speaking");
 
   return (
     <>
@@ -37,10 +40,18 @@ const VapiControls = ({ book }: { book: IBook }) => {
             <div className="vapi-mic-wrapper">
               <button
                 type="button"
+                onClick={isActive ? stop : start}
                 className="vapi-mic-btn"
-                aria-label="Microphone disabled"
+                aria-label={isActive ? "Stop recording" : "Start recording"}
+                disabled={status === "connecting" || status === "starting"}
               >
-                <MicOff className="size-6 text-[#212a3b]" />
+                {isActive ? (
+                  <Mic
+                    className={`size-6 text-[#212a3b] ${isPinging ? "animate-ping" : ""}`}
+                  />
+                ) : (
+                  <MicOff className="size-6 text-[#212a3b]" />
+                )}
               </button>
             </div>
           </div>
@@ -77,7 +88,7 @@ const VapiControls = ({ book }: { book: IBook }) => {
         <div className="vapi-transcript-wrapper">
           <Transcript
             messages={messages}
-            currentMessage={currentMessage?.content ?? ""}
+            currentMessage={currentMessage}
             currentUserMessage={currentUserMessage}
           />
         </div>
