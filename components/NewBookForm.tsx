@@ -130,7 +130,6 @@ export function NewBookForm() {
       console.log("Book upload form submitted", data);
       const book = await createBookAction({
         data: {
-          clerkId: userId,
           title: data.title,
           author: data.author,
           fileURL: uploadedPdfBlob.url,
@@ -153,7 +152,6 @@ export function NewBookForm() {
       console.log("Book created", book);
 
       const segments = await saveBookSegmentsAction({
-        clerkId: userId,
         bookId: book.data._id,
         segments: parsedPdf.content,
       });

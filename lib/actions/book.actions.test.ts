@@ -11,7 +11,7 @@ import * as db from "@/database/mongoose";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
 
-vi.mock("@clerk/nextjs", () => ({
+vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(),
 }));
 
@@ -24,6 +24,7 @@ vi.mock("@/database/models/book.model", () => ({
     countDocuments: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),
+    findById: vi.fn(),
     findByIdAndUpdate: vi.fn(),
     findByIdAndDelete: vi.fn(),
   },
@@ -52,6 +53,7 @@ const bookFixture = () => ({
 
 const mockBookFindOne = Book.findOne as Mock;
 const mockBookCreate = Book.create as Mock;
+const mockBookFindById = Book.findById as Mock;
 const mockBookFindByIdAndUpdate = Book.findByIdAndUpdate as Mock;
 const mockBookFindByIdAndDelete = Book.findByIdAndDelete as Mock;
 const mockBookSegmentInsertMany = BookSegment.insertMany as Mock;
@@ -71,7 +73,6 @@ describe("createBook Server Action", () => {
 
     const result = await createBookAction({
       data: {
-        clerkId: "user_123",
         title: "Ghost Book",
         author: "Someone",
         persona: "alloy",
@@ -112,9 +113,11 @@ describe("createBook Server Action", () => {
 
     mockBookCreate.mockRejectedValue(duplicateKeyError);
 
+    const { auth } = await import("@clerk/nextjs/server");
+    (auth as unknown as Mock).mockReturnValue({ userId: "user_123" });
+
     const result = await createBookAction({
       data: {
-        clerkId: "user_123",
         title: "Ghost Book",
         author: "Someone",
         persona: "alloy",
@@ -143,9 +146,15 @@ describe("saveBookSegmentAction", () => {
   });
 
   it("saves book segments", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    (auth as unknown as Mock).mockReturnValue({ userId: "user_123" });
+    mockBookFindById.mockReturnValue({
+      lean: vi
+        .fn()
+        .mockResolvedValue({ ...bookFixture(), clerkId: "user_123" }),
+    });
     const result = await saveBookSegmentsAction({
       bookId: "book_123",
-      clerkId: "user_123",
       segments: [
         {
           text: "Hello world",
@@ -160,12 +169,18 @@ describe("saveBookSegmentAction", () => {
   });
 
   it("updates totalSegments to 0 when no segments are provided", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    (auth as unknown as Mock).mockReturnValue({ userId: "user_123" });
+    mockBookFindById.mockReturnValue({
+      lean: vi
+        .fn()
+        .mockResolvedValue({ ...bookFixture(), clerkId: "user_123" }),
+    });
     mockBookSegmentInsertMany.mockResolvedValue([]);
     mockBookFindByIdAndUpdate.mockResolvedValue({});
 
     const result = await saveBookSegmentsAction({
       bookId: "book_123",
-      clerkId: "user_123",
       segments: [],
     });
 
@@ -180,6 +195,13 @@ describe("saveBookSegmentAction", () => {
   });
 
   it("cleans up inserted data if saving segments fails", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    (auth as unknown as Mock).mockReturnValue({ userId: "user_123" });
+    mockBookFindById.mockReturnValue({
+      lean: vi
+        .fn()
+        .mockResolvedValue({ ...bookFixture(), clerkId: "user_123" }),
+    });
     const error = new Error("insert failed");
     mockBookSegmentInsertMany.mockRejectedValue(error);
     mockBookSegmentDeleteMany.mockResolvedValue({});
@@ -187,7 +209,6 @@ describe("saveBookSegmentAction", () => {
 
     const result = await saveBookSegmentsAction({
       bookId: "book_123",
-      clerkId: "user_123",
       segments: [{ text: "hello world", segmentIndex: 0, wordCount: 2 }],
     });
 
@@ -200,6 +221,37 @@ describe("saveBookSegmentAction", () => {
       bookId: "book_123",
     });
     expect(Book.findByIdAndDelete).toHaveBeenCalledWith("book_123");
+  });
+
+  it("returns unauthorized when no user is present", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    (auth as unknown as Mock).mockReturnValue({ userId: null });
+
+    const result = await saveBookSegmentsAction({
+      bookId: "book_123",
+      segments: [],
+    });
+
+    expect(result).toEqual({ success: false, error: "Unauthorized" });
+    expect(BookSegment.insertMany).not.toHaveBeenCalled();
+  });
+
+  it("returns forbidden when user does not own the book", async () => {
+    const { auth } = await import("@clerk/nextjs/server");
+    (auth as unknown as Mock).mockReturnValue({ userId: "user_abc" });
+    mockBookFindById.mockReturnValue({
+      lean: vi
+        .fn()
+        .mockResolvedValue({ ...bookFixture(), clerkId: "user_123" }),
+    });
+
+    const result = await saveBookSegmentsAction({
+      bookId: "book_123",
+      segments: [],
+    });
+
+    expect(result).toEqual({ success: false, error: "Forbidden" });
+    expect(BookSegment.insertMany).not.toHaveBeenCalled();
   });
 });
 

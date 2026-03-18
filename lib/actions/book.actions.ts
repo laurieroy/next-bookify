@@ -17,6 +17,8 @@ import { escapeRegex, generateSlug, serializeData } from "@/lib/utils";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
 import mongoose from "mongoose";
+import type { Types } from "mongoose";
+import { auth } from "@clerk/nextjs/server";
 
 function createExistingBookResult(book: IBook): CreateBookActionResult {
   return {
@@ -78,7 +80,17 @@ export async function createBookAction({
       return createExistingBookResult(existingBook);
     }
 
-    const book = await Book.create({ ...data, slug, totalSegments: 0 });
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const book = await Book.create({
+      ...data,
+      clerkId: userId,
+      slug,
+      totalSegments: 0,
+    });
 
     return {
       success: true,
@@ -182,11 +194,9 @@ export async function getBookBySlugAction(
 
 export async function saveBookSegmentsAction({
   bookId,
-  clerkId,
   segments,
 }: {
-  bookId: string;
-  clerkId: string;
+  bookId: string | Types.ObjectId;
   segments: TextSegment[];
 }): Promise<SaveBookSegmentsResult> {
   try {
@@ -194,9 +204,19 @@ export async function saveBookSegmentsAction({
 
     console.log("Saving book segments...");
 
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const book = await Book.findById(bookId).lean();
+    if (!book || book.clerkId !== userId) {
+      return { success: false, error: "Forbidden" };
+    }
+
     const segmentsToInsert = segments.map(
       ({ text, segmentIndex, pageNumber, wordCount }) => ({
-        clerkId,
+        clerkId: userId,
         bookId,
         content: text,
         segmentIndex,

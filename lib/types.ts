@@ -65,7 +65,6 @@ export interface BookCardProps {
 }
 
 export interface CreateBook {
-  clerkId: string;
   title: string;
   author: string;
   persona?: string;
