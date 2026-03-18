@@ -6,6 +6,12 @@ import type {
   CreateBookActionResult,
   IBook,
   TextSegment,
+  CheckBookExistsResult,
+  GetAllBooksResult,
+  GetBookBySlugResult,
+  SaveBookSegmentsResult,
+  SearchBookSegmentsResult,
+  SegmentSearchResultItem,
 } from "@/lib/types";
 import { escapeRegex, generateSlug, serializeData } from "@/lib/utils";
 import Book from "@/database/models/book.model";
@@ -20,7 +26,9 @@ function createExistingBookResult(book: IBook): CreateBookActionResult {
   };
 }
 
-export async function checkBookExistsAction(title: string) {
+export async function checkBookExistsAction(
+  title: string,
+): Promise<CheckBookExistsResult> {
   try {
     await connectToDatabase();
 
@@ -43,6 +51,7 @@ export async function checkBookExistsAction(title: string) {
     console.error("Error checking book exists:", error);
     return {
       exists: false,
+      book: null,
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
@@ -108,7 +117,7 @@ export async function createBookAction({
   }
 }
 
-export async function getAllBooksAction() {
+export async function getAllBooksAction(): Promise<GetAllBooksResult> {
   try {
     await connectToDatabase();
 
@@ -127,7 +136,9 @@ export async function getAllBooksAction() {
   }
 }
 
-export async function getBookBySlugAction(slug: string) {
+export async function getBookBySlugAction(
+  slug: string,
+): Promise<GetBookBySlugResult> {
   try {
     await connectToDatabase();
 
@@ -163,6 +174,7 @@ export async function getBookBySlugAction(slug: string) {
     console.error("Error getting book by slug:", error);
     return {
       success: false,
+      data: null,
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
@@ -176,7 +188,7 @@ export async function saveBookSegmentsAction({
   bookId: string;
   clerkId: string;
   segments: TextSegment[];
-}) {
+}): Promise<SaveBookSegmentsResult> {
   try {
     await connectToDatabase();
 
@@ -217,7 +229,7 @@ export const searchBookSegmentsAction = async (
   bookId: string,
   query: string,
   limit: number = 5,
-) => {
+): Promise<SearchBookSegmentsResult> => {
   try {
     await connectToDatabase();
 
@@ -226,7 +238,7 @@ export const searchBookSegmentsAction = async (
     const bookObjectId = new mongoose.Types.ObjectId(bookId);
 
     // Try MongoDB text search first (requires text index)
-    let segments: Record<string, unknown>[] = [];
+    let segments: unknown[] = [];
     try {
       segments = await BookSegment.find({
         bookId: bookObjectId,
@@ -267,7 +279,7 @@ export const searchBookSegmentsAction = async (
 
     return {
       success: true,
-      data: serializeData(segments),
+      data: serializeData(segments) as unknown as SegmentSearchResultItem[],
     };
   } catch (error) {
     console.error("Error searching segments:", error);
