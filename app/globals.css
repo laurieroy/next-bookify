@@ -196,6 +196,57 @@
   .clerk-subscriptions {
     @apply py-18 min-h-screen max-w-7xl px-5 mx-auto w-full flex flex-col pb-12 items-center container;
   }
+  .subscription-hero-card {
+    @apply bg-[#f3e4c7] rounded-[14px] p-6 md:p-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between;
+  }
+  .subscription-hero-copy {
+    @apply flex flex-col gap-3 max-w-3xl;
+  }
+  .subscription-eyebrow {
+    @apply text-sm font-semibold uppercase tracking-[0.18em] text-[var(--color-brand)];
+  }
+  .subscription-current-plan {
+    @apply shrink-0 rounded-[14px] bg-white px-5 py-4 border border-[var(--border-subtle)] min-w-[220px];
+    box-shadow: var(--shadow-soft-sm);
+  }
+  .subscription-current-plan-label {
+    @apply block text-sm font-medium text-[var(--text-secondary)] mb-1;
+  }
+  .subscription-current-plan-value {
+    @apply block text-2xl font-semibold text-black font-serif;
+  }
+  .subscription-plan-grid {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-5 mt-8 mb-8;
+  }
+  .subscription-plan-card {
+    @apply rounded-[14px] bg-white border border-[var(--border-subtle)] p-6 flex flex-col gap-6;
+    box-shadow: var(--shadow-soft-sm);
+  }
+  .subscription-plan-card-active {
+    @apply border-[var(--color-brand)];
+    box-shadow: var(--shadow-soft-md);
+  }
+  .subscription-plan-card-header {
+    @apply flex flex-col gap-2;
+  }
+  .subscription-plan-card-description {
+    @apply text-base text-[var(--text-secondary)] font-medium;
+  }
+  .subscription-plan-card-metrics {
+    @apply grid grid-cols-1 gap-4;
+  }
+  .subscription-plan-card-metrics div {
+    @apply flex items-center justify-between gap-4 pb-4 border-b border-[var(--border-subtle)];
+  }
+  .subscription-plan-card-metrics div:last-child {
+    @apply border-b-0 pb-0;
+  }
+  .subscription-plan-card-metrics dt {
+    @apply text-sm font-medium text-[var(--text-secondary)];
+  }
+  .subscription-plan-card-metrics dd {
+    @apply text-sm font-semibold text-[var(--text-primary)] text-right;
+  }
   .page-title {
     @apply !text-3xl font-bold text-center;
   }
@@ -964,6 +1015,8 @@ button[data-variant='unstyled'] *,
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
+  padding: 0.5rem;
+  border-radius: 1rem;
 }
 
 /*!* Match the app's existing design system *!*/

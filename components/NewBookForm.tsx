@@ -137,7 +137,7 @@ export function NewBookForm() {
       });
 
       if (!book.success) {
-        throw new Error("Failed to create book.");
+        throw new Error(book.error);
       }
 
       if (book.status === "existing") {
@@ -161,7 +161,11 @@ export function NewBookForm() {
       router.push("/");
     } catch (error) {
       console.error("Error uploading book", error);
-      toast.error("Error uploading book. Please try again later.");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error uploading book. Please try again later.",
+      );
     } finally {
       setIsSubmitting(false);
     }

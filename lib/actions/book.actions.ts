@@ -6,6 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 import { connectToDatabase } from "@/database/mongoose";
+import { getCurrentSubscriptionStatus } from "@/lib/subscription.server";
 import type {
   CreateBook,
   CreateBookActionResult,
@@ -85,6 +86,16 @@ export async function createBookAction({
     const { userId } = await auth();
     if (!userId) {
       return { success: false, error: "Unauthorized" };
+    }
+
+    const subscription = await getCurrentSubscriptionStatus();
+    const currentBookCount = await Book.countDocuments({ clerkId: userId });
+
+    if (currentBookCount >= subscription.limits.maxBooks) {
+      return {
+        success: false,
+        error: `Your ${subscription.plan} plan allows up to ${subscription.limits.maxBooks} book${subscription.limits.maxBooks === 1 ? "" : "s"}. Upgrade your subscription to upload more.`,
+      };
     }
 
     const book = await Book.create({

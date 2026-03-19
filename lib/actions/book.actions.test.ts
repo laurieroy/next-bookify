@@ -8,11 +8,20 @@ import {
   saveBookSegmentsAction,
 } from "./book.actions";
 import * as db from "@/database/mongoose";
+import { getCurrentSubscriptionStatus } from "@/lib/subscription.server";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
 
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(),
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+}));
+
+vi.mock("@/lib/subscription.server", () => ({
+  getCurrentSubscriptionStatus: vi.fn(),
 }));
 
 vi.mock("@/database/mongoose", () => ({
@@ -52,12 +61,14 @@ const bookFixture = () => ({
 });
 
 const mockBookFindOne = Book.findOne as Mock;
+const mockBookCountDocuments = Book.countDocuments as Mock;
 const mockBookCreate = Book.create as Mock;
 const mockBookFindById = Book.findById as Mock;
 const mockBookFindByIdAndUpdate = Book.findByIdAndUpdate as Mock;
 const mockBookFindByIdAndDelete = Book.findByIdAndDelete as Mock;
 const mockBookSegmentInsertMany = BookSegment.insertMany as Mock;
 const mockBookSegmentDeleteMany = BookSegment.deleteMany as Mock;
+const mockGetCurrentSubscriptionStatus = getCurrentSubscriptionStatus as Mock;
 
 describe("createBook Server Action", () => {
   beforeEach(() => {
@@ -112,6 +123,17 @@ describe("createBook Server Action", () => {
     );
 
     mockBookCreate.mockRejectedValue(duplicateKeyError);
+    mockBookCountDocuments.mockResolvedValue(0);
+    mockGetCurrentSubscriptionStatus.mockResolvedValue({
+      plan: "free",
+      limits: {
+        maxBooks: 1,
+        maxSessionsPerMonth: 5,
+        maxSessionMinutes: 5,
+        hasSessionHistory: false,
+      },
+      isPaid: false,
+    });
 
     const { auth } = await import("@clerk/nextjs/server");
     (auth as unknown as Mock).mockReturnValue({ userId: "user_123" });
@@ -136,6 +158,186 @@ describe("createBook Server Action", () => {
       success: true,
       data: existingBook,
       status: "existing",
+    });
+  });
+
+  it("returns the free-plan limit error when the user already owns the maximum number of books", async () => {
+    mockBookFindOne.mockReturnValue({
+      lean: vi.fn().mockResolvedValue(null),
+    });
+    mockBookCountDocuments.mockResolvedValue(1);
+    mockGetCurrentSubscriptionStatus.mockResolvedValue({
+      plan: "free",
+      limits: {
+        maxBooks: 1,
+        maxSessionsPerMonth: 5,
+        maxSessionMinutes: 5,
+        hasSessionHistory: false,
+      },
+      isPaid: false,
+    });
+
+    const { auth } = await import("@clerk/nextjs/server");
+    (auth as unknown as Mock).mockReturnValue({ userId: "user_123" });
+
+    const result = await createBookAction({
+      data: {
+        title: "New Book",
+        author: "Someone",
+        persona: "alloy",
+        fileURL: "https://example.com/book.pdf",
+        fileBlobKey: "book.pdf",
+        coverURL: "https://example.com/cover.png",
+        fileSize: 1234,
+      },
+    });
+
+    expect(db.connectToDatabase).toHaveBeenCalled();
+    expect(Book.findOne).toHaveBeenCalledWith({ slug: "new-book" });
+    expect(Book.countDocuments).toHaveBeenCalledWith({ clerkId: "user_123" });
+    expect(getCurrentSubscriptionStatus).toHaveBeenCalled();
+    expect(Book.create).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Your free plan allows up to 1 book. Upgrade your subscription to upload more.",
+    });
+  });
+
+  it("creates a book when the user is within the standard plan limit", async () => {
+    const createdBook = {
+      ...bookFixture(),
+      title: "Standard Plan Book",
+      slug: "standard-plan-book",
+    };
+
+    mockBookFindOne.mockReturnValue({
+      lean: vi.fn().mockResolvedValue(null),
+    });
+    mockBookCountDocuments.mockResolvedValue(9);
+    mockGetCurrentSubscriptionStatus.mockResolvedValue({
+      plan: "standard",
+      limits: {
+        maxBooks: 10,
+        maxSessionsPerMonth: 100,
+        maxSessionMinutes: 15,
+        hasSessionHistory: true,
+      },
+      isPaid: true,
+    });
+    mockBookCreate.mockResolvedValue(createdBook);
+
+    const { auth } = await import("@clerk/nextjs/server");
+    (auth as unknown as Mock).mockReturnValue({ userId: "user_123" });
+
+    const result = await createBookAction({
+      data: {
+        title: "Standard Plan Book",
+        author: "Someone",
+        persona: "alloy",
+        fileURL: "https://example.com/book.pdf",
+        fileBlobKey: "book.pdf",
+        coverURL: "https://example.com/cover.png",
+        fileSize: 1234,
+      },
+    });
+
+    expect(getCurrentSubscriptionStatus).toHaveBeenCalled();
+    expect(Book.countDocuments).toHaveBeenCalledWith({ clerkId: "user_123" });
+    expect(Book.create).toHaveBeenCalledWith({
+      title: "Standard Plan Book",
+      author: "Someone",
+      persona: "alloy",
+      fileURL: "https://example.com/book.pdf",
+      fileBlobKey: "book.pdf",
+      coverURL: "https://example.com/cover.png",
+      fileSize: 1234,
+      clerkId: "user_123",
+      slug: "standard-plan-book",
+      totalSegments: 0,
+    });
+    expect(result).toEqual({
+      success: true,
+      status: "created",
+      data: createdBook,
+    });
+  });
+
+  it("returns the standard-plan limit error when the user already owns the maximum number of books", async () => {
+    mockBookFindOne.mockReturnValue({
+      lean: vi.fn().mockResolvedValue(null),
+    });
+    mockBookCountDocuments.mockResolvedValue(10);
+    mockGetCurrentSubscriptionStatus.mockResolvedValue({
+      plan: "standard",
+      limits: {
+        maxBooks: 10,
+        maxSessionsPerMonth: 100,
+        maxSessionMinutes: 15,
+        hasSessionHistory: true,
+      },
+      isPaid: true,
+    });
+
+    const { auth } = await import("@clerk/nextjs/server");
+    (auth as unknown as Mock).mockReturnValue({ userId: "user_123" });
+
+    const result = await createBookAction({
+      data: {
+        title: "Another Standard Book",
+        author: "Someone",
+        persona: "alloy",
+        fileURL: "https://example.com/book.pdf",
+        fileBlobKey: "book.pdf",
+        coverURL: "https://example.com/cover.png",
+        fileSize: 1234,
+      },
+    });
+
+    expect(Book.create).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Your standard plan allows up to 10 books. Upgrade your subscription to upload more.",
+    });
+  });
+
+  it("returns the pro-plan limit error when the user already owns the maximum number of books", async () => {
+    mockBookFindOne.mockReturnValue({
+      lean: vi.fn().mockResolvedValue(null),
+    });
+    mockBookCountDocuments.mockResolvedValue(100);
+    mockGetCurrentSubscriptionStatus.mockResolvedValue({
+      plan: "pro",
+      limits: {
+        maxBooks: 100,
+        maxSessionsPerMonth: null,
+        maxSessionMinutes: 60,
+        hasSessionHistory: true,
+      },
+      isPaid: true,
+    });
+
+    const { auth } = await import("@clerk/nextjs/server");
+    (auth as unknown as Mock).mockReturnValue({ userId: "user_123" });
+
+    const result = await createBookAction({
+      data: {
+        title: "Another Pro Book",
+        author: "Someone",
+        persona: "alloy",
+        fileURL: "https://example.com/book.pdf",
+        fileBlobKey: "book.pdf",
+        coverURL: "https://example.com/cover.png",
+        fileSize: 1234,
+      },
+    });
+
+    expect(Book.create).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Your pro plan allows up to 100 books. Upgrade your subscription to upload more.",
     });
   });
 });
