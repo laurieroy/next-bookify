@@ -2,7 +2,7 @@ import { Document, Types } from "mongoose";
 import { ReactNode } from "react";
 import { Control, FieldPath, FieldValues } from "react-hook-form";
 import { LucideIcon } from "lucide-react";
-import z from "zod";
+import { z } from "zod";
 
 import { PlanType } from "@/lib/subscription-constants";
 import { UploadSchema } from "@/lib/zod";

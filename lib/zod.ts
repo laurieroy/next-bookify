@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 import {
   ACCEPTED_IMAGE_TYPES,
   ACCEPTED_PDF_TYPES,

@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ImageIcon, Upload } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { type Resolver, useForm } from "react-hook-form";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import z from "zod";
+// zod types are inferred via BookUploadFormValues
 
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -41,12 +41,8 @@ export function NewBookForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { userId } = useAuth();
 
-  const form = useForm<
-    z.input<typeof UploadSchema>,
-    unknown,
-    BookUploadFormValues
-  >({
-    resolver: zodResolver(UploadSchema),
+  const form = useForm<BookUploadFormValues>({
+    resolver: zodResolver(UploadSchema) as Resolver<BookUploadFormValues>,
     defaultValues: {
       pdfFile: undefined,
       coverImage: undefined,

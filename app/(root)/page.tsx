@@ -12,7 +12,7 @@ export default async function Home() {
 
       <div id="library" className="library-books-grid">
         {books.map((book) => (
-          <BookCard key={book._id} {...book} />
+          <BookCard key={String(book._id)} {...book} />
         ))}
       </div>
     </main>
