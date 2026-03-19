@@ -3,6 +3,7 @@
 import mongoose from "mongoose";
 import type { Types } from "mongoose";
 import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
 
 import { connectToDatabase } from "@/database/mongoose";
 import type {
@@ -20,7 +21,6 @@ import type {
 import { escapeRegex, generateSlug, serializeData } from "@/lib/utils";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/book-segment.model";
-
 
 function createExistingBookResult(book: IBook): CreateBookActionResult {
   return {
@@ -93,6 +93,8 @@ export async function createBookAction({
       slug,
       totalSegments: 0,
     });
+
+    revalidatePath("/");
 
     return {
       success: true,

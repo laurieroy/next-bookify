@@ -1,10 +1,10 @@
 # Bookify
 
-Bookify is a Next.js app for turning books into an interactive reading experience. The goal is to let users upload books, enrich them with metadata, and eventually explore them through AI-powered reading and voice features.
+Bookify is a "talk-to-your-book" app where users upload PDFs, the app extracts and stores the content, and then a voice AI assistant discusses, explains, or tutors the user on that book.
 
 Right now, the project includes:
 
-- A landing page with featured/sample books
+- A landing page with user-supplied books
 - A form to upload a PDF and optional cover image
 - Metadata inputs for title, author, and voice selection
 - Validation with `react-hook-form` and `zod`
@@ -20,6 +20,8 @@ Right now, the project includes:
 - React Hook Form + Zod validation
 - Mongoose / MongoDB
 - Clerk Authentication
+- Vapi for voice AI conversations
+- Vercel Blob for file storage
 - Vitest
 
 ## Getting Started
@@ -60,13 +62,13 @@ Implemented so far:
 - File upload inputs for PDF and optional cover image
 - Voice selection field
 - Loading state during submission
-
-Still in progress / not yet wired end-to-end:
-
 - Persistent book creation
 - PDF processing pipeline
 - Cover auto-generation
 - Voice synthesis / audio generation
+
+Still in progress / not yet wired end-to-end:
+
 - Authentication-gated workflows
 - Production-ready data flow from form submission to database
 
