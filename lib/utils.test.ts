@@ -234,10 +234,13 @@ describe("parsePDFFile", () => {
     expect(canvas.width).toBe(120);
     expect(canvas.height).toBe(240);
     expect(firstPage.getViewport).toHaveBeenCalledWith({ scale: 2 });
-    expect(renderMock).toHaveBeenCalledWith({
-      canvasContext: context,
-      viewport: { width: 120, height: 240 },
-    });
+    expect(renderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canvas,
+        canvasContext: context,
+        viewport: { width: 120, height: 240 },
+      }),
+    );
     expect(result.cover).toBe("data:image/png;base64,mock-cover");
     expect(result.content).toEqual([
       {
