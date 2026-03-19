@@ -76,13 +76,12 @@ export function getCurrentBillingPeriodKey(): string {
   const currentPeriodStart = getCurrentBillingPeriodStart();
   return currentPeriodStart.toISOString().slice(0, 7);
 }
+export function isPaidPlan(plan: PlanType): boolean {
+  return plan !== PLANS.FREE;
+}
 
 export function getPlanLimits(plan: PlanType): SubscriptionPlanLimits {
   return SUBSCRIPTION_PLANS[plan].limits;
-}
-
-export function isPaidPlan(plan: PlanType): boolean {
-  return plan !== PLANS.FREE;
 }
 
 export function getPlanSlug(plan: PlanType): string | null {

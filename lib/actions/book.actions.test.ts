@@ -201,6 +201,7 @@ describe("createBook Server Action", () => {
       success: false,
       error:
         "Your free plan allows up to 1 book. Upgrade your subscription to upload more.",
+      code: "BOOK_LIMIT_REACHED",
     });
   });
 
@@ -299,6 +300,7 @@ describe("createBook Server Action", () => {
       success: false,
       error:
         "Your standard plan allows up to 10 books. Upgrade your subscription to upload more.",
+      code: "BOOK_LIMIT_REACHED",
     });
   });
 
@@ -338,6 +340,7 @@ describe("createBook Server Action", () => {
       success: false,
       error:
         "Your pro plan allows up to 100 books. Upgrade your subscription to upload more.",
+      code: "BOOK_LIMIT_REACHED",
     });
   });
 });

@@ -95,6 +95,7 @@ export async function createBookAction({
       return {
         success: false,
         error: `Your ${subscription.plan} plan allows up to ${subscription.limits.maxBooks} book${subscription.limits.maxBooks === 1 ? "" : "s"}. Upgrade your subscription to upload more.`,
+        code: "BOOK_LIMIT_REACHED",
       };
     }
 

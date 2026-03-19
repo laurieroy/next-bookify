@@ -115,10 +115,12 @@ export interface InputFieldProps<T extends FieldValues> {
 // ACTIONS & RESULTS
 // ============================================
 
+export type CreateBookActionErrorCode = "BOOK_LIMIT_REACHED";
+
 export type CreateBookActionResult =
   | { success: true; status: "created"; data: IBook }
   | { success: true; status: "existing"; data: IBook }
-  | { success: false; error: string };
+  | { success: false; error: string; code?: CreateBookActionErrorCode };
 
 // Book actions
 export type CheckBookExistsResult =

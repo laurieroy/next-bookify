@@ -14,7 +14,7 @@ import {
   ACCEPTED_PDF_TYPES,
   DEFAULT_VOICE,
 } from "@/lib/constants";
-import type { BookUploadFormValues, CreateBookActionResult } from "@/lib/types";
+import type { BookUploadFormValues } from "@/lib/types";
 import { UploadSchema } from "@/lib/zod";
 import { FileUploader } from "@/components/FileUploader";
 import { LoadingOverlay } from "@/components/LoadingOverlay";
@@ -137,7 +137,13 @@ export function NewBookForm() {
       });
 
       if (!book.success) {
-        throw new Error(book.error);
+        toast.error(book.error || "Failed to create book");
+
+        if (book.code === "BOOK_LIMIT_REACHED") {
+          router.push("/subscriptions");
+        }
+
+        return;
       }
 
       if (book.status === "existing") {
