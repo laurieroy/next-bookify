@@ -1,6 +1,7 @@
 import {
   getPlanLimits,
   getPlanSlug,
+  isPaidPlan,
   PLAN_CHECK_ORDER,
   PLANS,
   type PlanType,
@@ -47,10 +48,11 @@ export function getSubscriptionStatus(
   has?: ClerkHasAuthorization | null,
 ): SubscriptionStatus {
   const plan = getPlanFromHas(has);
+  const limits = getPlanLimits(plan);
 
   return {
     plan,
-    limits: getPlanLimits(plan),
-    isPaid: plan !== PLANS.FREE,
+    limits,
+    isPaid: isPaidPlan(plan),
   };
 }

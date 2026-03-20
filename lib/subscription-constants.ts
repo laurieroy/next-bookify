@@ -23,6 +23,7 @@ export interface SubscriptionPlanLimits {
 export interface SubscriptionPlanDefinition {
   slug: Exclude<PlanType, "free"> | null;
   label: string;
+  hasPrioritySupport: boolean;
   limits: SubscriptionPlanLimits;
 }
 
@@ -31,6 +32,7 @@ export const SUBSCRIPTION_PLANS: Record<PlanType, SubscriptionPlanDefinition> =
     [PLANS.FREE]: {
       slug: null,
       label: "Free",
+      hasPrioritySupport: false,
       limits: {
         maxBooks: 1,
         maxSessionsPerMonth: 5,
@@ -41,6 +43,7 @@ export const SUBSCRIPTION_PLANS: Record<PlanType, SubscriptionPlanDefinition> =
     [PLANS.STANDARD]: {
       slug: "standard",
       label: "Standard",
+      hasPrioritySupport: false,
       limits: {
         maxBooks: 10,
         maxSessionsPerMonth: 100,
@@ -51,6 +54,7 @@ export const SUBSCRIPTION_PLANS: Record<PlanType, SubscriptionPlanDefinition> =
     [PLANS.PRO]: {
       slug: "pro",
       label: "Pro",
+      hasPrioritySupport: true,
       limits: {
         maxBooks: 100,
         maxSessionsPerMonth: null,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { PLANS } from "@/lib/subscription-constants";
 import {
+  getPlanFromHas,
   getSubscriptionStatus,
   type ClerkHasAuthorization,
 } from "@/lib/subscription";
@@ -25,6 +26,24 @@ function matchesAnyPlan(plans: string[]): ClerkHasAuthorization {
     return plans.includes(params.plan);
   };
 }
+
+function neverMatchesPlan(): ClerkHasAuthorization {
+  return () => false;
+}
+
+describe("getPlanFromHas", () => {
+  it("returns the free plan when has() is null", () => {
+    expect(getPlanFromHas(null)).toBe(PLANS.FREE);
+  });
+
+  it("returns the free plan when has() never matches a known plan", () => {
+    expect(getPlanFromHas(neverMatchesPlan())).toBe(PLANS.FREE);
+  });
+
+  it("returns the highest matching paid plan", () => {
+    expect(getPlanFromHas(matchesAnyPlan(["standard", "pro"]))).toBe(PLANS.PRO);
+  });
+});
 
 describe("getSubscriptionStatus", () => {
   it("returns the free plan when no has() function is available", () => {
@@ -78,5 +97,19 @@ describe("getSubscriptionStatus", () => {
     expect(result.plan).toBe(PLANS.PRO);
     expect(result.limits.maxBooks).toBe(100);
     expect(result.isPaid).toBe(true);
+  });
+
+  it("returns the free plan when has() does not match a known paid plan", () => {
+    const result = getSubscriptionStatus(matchesPlan("enterprise"));
+
+    expect(result.plan).toBe(PLANS.FREE);
+    expect(result.isPaid).toBe(false);
+  });
+
+  it("returns the free plan when has() is null", () => {
+    const result = getSubscriptionStatus(null);
+
+    expect(result.plan).toBe(PLANS.FREE);
+    expect(result.isPaid).toBe(false);
   });
 });

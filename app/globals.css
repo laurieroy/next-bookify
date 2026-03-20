@@ -229,6 +229,21 @@
   .subscription-plan-card-header {
     @apply flex flex-col gap-2;
   }
+  .subscription-plan-card-title-row {
+    @apply flex items-start justify-between gap-3;
+  }
+  .subscription-plan-card-price {
+    @apply flex items-baseline gap-2 text-3xl font-semibold text-[var(--text-primary)] font-serif leading-none;
+  }
+  .subscription-plan-card-price-amount {
+    @apply text-3xl font-semibold;
+  }
+  .subscription-plan-card-price-period {
+    @apply text-sm font-medium text-[var(--text-secondary)];
+  }
+  .subscription-plan-card-badge {
+    @apply inline-flex items-center rounded-full bg-[var(--color-brand)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-white;
+  }
   .subscription-plan-card-description {
     @apply text-base text-[var(--text-secondary)] font-medium;
   }
@@ -246,6 +261,13 @@
   }
   .subscription-plan-card-metrics dd {
     @apply text-sm font-semibold text-[var(--text-primary)] text-right;
+  }
+  .subscription-plan-card-action {
+    @apply inline-flex w-full items-center justify-center rounded-[10px] bg-[var(--color-brand)] px-6 py-3 text-lg font-bold text-white transition-colors hover:bg-[var(--color-brand-hover)];
+    font-family: 'IBM Plex Serif', serif;
+  }
+  .subscription-plan-card-action-current {
+    @apply cursor-default bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)];
   }
   .page-title {
     @apply !text-3xl font-bold text-center;
@@ -856,20 +878,21 @@
   background: var(--bg-primary);
 }
 
-/* Center all wrappers */
+/* Stack cards on small screens */
 .clerk-pricing-table-wrapper > div,
 .clerk-pricing-table-wrapper > div > div {
   display: flex !important;
   justify-content: center !important;
-  flex-wrap: wrap !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
   gap: 20px !important;
 }
 
 /* Individual cards */
 .clerk-pricing-table-wrapper > div > div > div {
   position: relative;
-  flex: 1 1 300px !important;
-  max-width: 400px !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 /* Card styling - with soft shadow */
@@ -938,6 +961,19 @@ button[data-variant='unstyled'] *,
 .clerk-pricing-table-wrapper [class*='card'] > *,
 .clerk-pricing-table-wrapper > div > div > div > * {
   background-color: white !important;
+}
+
+@media (min-width: 768px) {
+  .clerk-pricing-table-wrapper > div,
+  .clerk-pricing-table-wrapper > div > div {
+    flex-direction: row !important;
+    align-items: stretch !important;
+  }
+
+  .clerk-pricing-table-wrapper > div > div > div {
+    flex: 1 1 300px !important;
+    max-width: 400px !important;
+  }
 }
 
 /* All buttons */
