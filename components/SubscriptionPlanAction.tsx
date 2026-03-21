@@ -5,7 +5,7 @@ import {
   SubscriptionDetailsButton,
   usePlans,
 } from "@clerk/nextjs/experimental";
-import { Show } from "@clerk/nextjs";
+import { SignInButton, Show } from "@clerk/nextjs";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,25 +48,43 @@ export function SubscriptionPlanAction({
 
   if (isDowngradeToFree) {
     return (
-      <Show when="signed-in">
-        <SubscriptionDetailsButton>
-          <Button className={className} size="lg" type="button">
-            {actionLabel}
-          </Button>
-        </SubscriptionDetailsButton>
-      </Show>
+      <>
+        <Show when="signed-in">
+          <SubscriptionDetailsButton>
+            <Button className={className} size="lg" type="button">
+              {actionLabel}
+            </Button>
+          </SubscriptionDetailsButton>
+        </Show>
+        <Show when="signed-out">
+          <SignInButton mode="modal">
+            <Button className={className} size="lg" type="button">
+              {actionLabel}
+            </Button>
+          </SignInButton>
+        </Show>
+      </>
     );
   }
 
   if (isPaidTargetPlan && targetPlanId) {
     return (
-      <Show when="signed-in">
-        <CheckoutButton planId={targetPlanId}>
-          <Button className={className} size="lg" type="button">
-            {actionLabel}
-          </Button>
-        </CheckoutButton>
-      </Show>
+      <>
+        <Show when="signed-in">
+          <CheckoutButton planId={targetPlanId}>
+            <Button className={className} size="lg" type="button">
+              {actionLabel}
+            </Button>
+          </CheckoutButton>
+        </Show>
+        <Show when="signed-out">
+          <SignInButton mode="modal">
+            <Button className={className} size="lg" type="button">
+              {actionLabel}
+            </Button>
+          </SignInButton>
+        </Show>
+      </>
     );
   }
 

@@ -1,5 +1,4 @@
 import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 
 import { SubscriptionPlanAction } from "@/components/SubscriptionPlanAction";
 import {
@@ -55,12 +54,9 @@ function getPlanFeatureRows(plan: PlanType) {
 
 export default async function SubscriptionsPage() {
   const { userId } = await auth();
-
-  if (!userId) {
-    redirect("/sign-in");
-  }
-
-  const subscription = await getCurrentSubscriptionStatus();
+  const subscription = userId
+    ? await getCurrentSubscriptionStatus()
+    : { plan: PLANS.FREE };
 
   return (
     <main className="bg-background pt-8 md:pt-8">

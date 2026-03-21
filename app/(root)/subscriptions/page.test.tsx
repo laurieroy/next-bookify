@@ -94,14 +94,17 @@ describe("SubscriptionsPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("redirects unauthenticated users to sign-in", async () => {
+  it("renders the pricing page for unauthenticated users", async () => {
     authMock.mockResolvedValue({ userId: null });
-    redirectMock.mockImplementation(() => {
-      throw new Error("redirected");
-    });
 
-    await expect(SubscriptionsPage()).rejects.toThrow("redirected");
-    expect(redirectMock).toHaveBeenCalledWith("/sign-in");
+    render(await SubscriptionsPage());
+
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Choose Your Plan",
+      }),
+    ).toBeInTheDocument();
     expect(getCurrentSubscriptionStatusMock).not.toHaveBeenCalled();
   });
 });

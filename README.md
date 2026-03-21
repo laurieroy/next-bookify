@@ -66,11 +66,14 @@ Implemented so far:
 - PDF processing pipeline
 - Cover auto-generation
 - Voice synthesis / audio generation
+- Subscription management
 
 Still in progress / not yet wired end-to-end:
 
 - Authentication-gated workflows
 - Production-ready data flow from form submission to database
+- Over-limit handling + UI
+- Update auth pages to app branding
 
 ## Testing
 
