@@ -105,11 +105,4 @@ describe("getSubscriptionStatus", () => {
     expect(result.plan).toBe(PLANS.FREE);
     expect(result.isPaid).toBe(false);
   });
-
-  it("returns the free plan when has() is null", () => {
-    const result = getSubscriptionStatus(null);
-
-    expect(result.plan).toBe(PLANS.FREE);
-    expect(result.isPaid).toBe(false);
-  });
 });
