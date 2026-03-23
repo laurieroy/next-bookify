@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import React, { forwardRef, useImperativeHandle } from "react";
 import { render, act } from "@testing-library/react";
 import type { IBook } from "@/lib/types";
@@ -62,6 +62,10 @@ describe("useVapi", () => {
   beforeEach(async () => {
     for (const k of Object.keys(listeners)) delete listeners[k];
     await vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("handles user/assistant partial and final transcripts with dedupe", async () => {
@@ -201,5 +205,43 @@ describe("useVapi", () => {
     expect(ref.current!.currentMessage).toBe("");
     expect(ref.current!.currentUserMessage).toBe("");
     expect(ref.current!.status).toBe("idle");
+  });
+
+  it("counts up elapsed time while the call is active", async () => {
+    vi.stubEnv("NEXT_PUBLIC_VAPI_API_KEY", "test-key");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-22T20:00:00.000Z"));
+
+    const { default: useVapi } = await import("./useVapi");
+
+    type HookApi = ReturnType<typeof useVapi>;
+    const HookHarness = forwardRef<HookApi, { book: IBook }>(
+      ({ book }, ref) => {
+        const api = useVapi(book);
+        useImperativeHandle(ref, () => api, [api]);
+        return null;
+      },
+    );
+    HookHarness.displayName = "HookHarness";
+
+    const book = createBook();
+    const ref = React.createRef<HookApi>();
+    render(<HookHarness ref={ref} book={book} />);
+    if (!ref.current) throw new Error("ref not set");
+
+    await act(async () => {
+      await ref.current!.start();
+      MockVapi.emit("call-start", undefined);
+    });
+
+    expect(ref.current!.duration).toBe(0);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(61_000);
+    });
+
+    expect(ref.current!.duration).toBe(61);
+
+    vi.useRealTimers();
   });
 });

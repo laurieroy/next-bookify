@@ -2,12 +2,18 @@
 
 import Image from "next/image";
 import { Mic, MicOff } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 import { Transcript } from "@/components/Transcript";
 import useVapi from "@/hooks/useVapi";
+import { useSubscription } from "@/hooks/useSubscription";
+import { formatDuration, getVoice } from "@/lib/utils";
 import { IBook } from "@/lib/types";
 
 const VapiControls = ({ book }: { book: IBook }) => {
+  const router = useRouter();
+  const { limits } = useSubscription();
   const {
     clearError,
     currentMessage,
@@ -21,8 +27,61 @@ const VapiControls = ({ book }: { book: IBook }) => {
     stop,
   } = useVapi(book);
 
+  const hasRedirectedRef = useRef(false);
+  const maxDurationSeconds = limits.maxSessionMinutes * 60;
+
   const isPinging =
     isActive && (status === "thinking" || status === "speaking");
+
+  const statusLabel = (() => {
+    switch (status) {
+      case "connecting":
+        return "Connecting";
+      case "starting":
+        return "Starting";
+      case "listening":
+        return "Listening";
+      case "thinking":
+        return "Thinking";
+      case "speaking":
+        return "Speaking";
+      default:
+        return "Ready";
+    }
+  })();
+
+  const statusDotClass = (() => {
+    switch (status) {
+      case "connecting":
+        return "vapi-status-dot-connecting";
+      case "starting":
+        return "vapi-status-dot-starting";
+      case "listening":
+        return "vapi-status-dot-listening";
+      case "thinking":
+        return "vapi-status-dot-thinking";
+      case "speaking":
+        return "vapi-status-dot-speaking";
+      default:
+        return "vapi-status-dot-ready";
+    }
+  })();
+
+  const voiceName = getVoice(book.persona).name;
+
+  useEffect(() => {
+    if (hasRedirectedRef.current) {
+      return;
+    }
+
+    if (!isActive || status === "idle" || duration < maxDurationSeconds) {
+      return;
+    }
+
+    hasRedirectedRef.current = true;
+    stop();
+    router.replace("/");
+  }, [duration, isActive, maxDurationSeconds, router, status, stop]);
 
   return (
     <>
@@ -73,18 +132,19 @@ const VapiControls = ({ book }: { book: IBook }) => {
 
             <div className="flex flex-wrap gap-2">
               <div className="vapi-status-indicator">
-                <span className="vapi-status-dot vapi-status-dot-ready" />
-                <span className="vapi-status-text">Ready</span>
+                <span className={`vapi-status-dot ${statusDotClass}`} />
+                <span className="vapi-status-text">{statusLabel}</span>
+              </div>
+
+              <div className="vapi-status-indicator">
+                <span className="vapi-status-text">Voice: {voiceName}</span>
               </div>
 
               <div className="vapi-status-indicator">
                 <span className="vapi-status-text">
-                  Voice: {book.persona ?? "Unknown"}
+                  {formatDuration(duration)}/
+                  {formatDuration(maxDurationSeconds)}
                 </span>
-              </div>
-
-              <div className="vapi-status-indicator">
-                <span className="vapi-status-text">0:00/15:00</span>
               </div>
             </div>
           </div>
