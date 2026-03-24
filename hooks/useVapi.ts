@@ -24,8 +24,6 @@ export function useLatestRef<T>(value: T) {
 
 const VAPI_API_KEY = process.env.NEXT_PUBLIC_VAPI_API_KEY;
 const TIMER_INTERVAL_MS = 1000;
-const SECONDS_PER_MINUTE = 60;
-const TIME_WARNING_THRESHOLD = 60; // Show warning when this many seconds remain
 
 let vapi: InstanceType<typeof Vapi>;
 function getVapi() {
@@ -40,13 +38,37 @@ function getVapi() {
   return vapi;
 }
 
+function getFailureMessage(rawMessage: string) {
+  const errorMessage = rawMessage.toLowerCase();
+
+  if (
+    errorMessage.includes("disconnect") ||
+    errorMessage.includes("transport") ||
+    errorMessage.includes("failed") ||
+    errorMessage.includes("closed")
+  ) {
+    return "Active session failed / disconnected. Click the mic to start again.";
+  }
+
+  if (errorMessage.includes("timeout") || errorMessage.includes("silence")) {
+    return "Session ended due to inactivity. Click the mic to start again.";
+  }
+
+  if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+    return "Connection lost. Please check your internet and try again.";
+  }
+
+  return "Session ended unexpectedly. Click the mic to start again.";
+}
+
 export type CallStatus =
   | "idle"
   | "connecting"
   | "starting"
   | "listening"
   | "thinking"
-  | "speaking";
+  | "speaking"
+  | "error";
 
 export function useVapi(book: IBook) {
   const { userId } = useAuth();
@@ -63,6 +85,7 @@ export function useVapi(book: IBook) {
   const startTimeRef = useRef<number | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const isStoppingRef = useRef(false);
+  const hasFatalErrorRef = useRef(false);
 
   // Keep refs in sync with latest values for use in callbacks
   // const maxDurationRef = useLatestRef(limits.maxSessionMinutes * 60);
@@ -71,9 +94,45 @@ export function useVapi(book: IBook) {
 
   // Set up Vapi event listeners
   useEffect(() => {
+    const stopTimer = () => {
+      if (!timerRef.current) {
+        return;
+      }
+
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    };
+
+    const endTrackedSession = () => {
+      if (!sessionIdRef.current) {
+        return;
+      }
+
+      endVoiceSessionAction(sessionIdRef.current, durationRef.current).catch(
+        (err) => console.error("Failed to end voice session:", err),
+      );
+      sessionIdRef.current = null;
+    };
+
+    const markFatalSessionError = (error: Error) => {
+      if (isStoppingRef.current) {
+        return;
+      }
+
+      hasFatalErrorRef.current = true;
+      setStatus("error");
+      setCurrentMessage("");
+      setCurrentUserMessage("");
+      stopTimer();
+      endTrackedSession();
+      startTimeRef.current = null;
+      setLimitError(getFailureMessage(error.message || ""));
+    };
+
     const handlers = {
       "call-start": () => {
         isStoppingRef.current = false;
+        hasFatalErrorRef.current = false;
         setStatus("starting"); // AI speaks first, wait for it
         setCurrentMessage("");
         setCurrentUserMessage("");
@@ -108,21 +167,13 @@ export function useVapi(book: IBook) {
         setCurrentUserMessage("");
 
         // Stop timer
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
+        stopTimer();
 
         // End session tracking
-        if (sessionIdRef.current) {
-          endVoiceSessionAction(
-            sessionIdRef.current,
-            durationRef.current,
-          ).catch((err) => console.error("Failed to end voice session:", err));
-          sessionIdRef.current = null;
-        }
+        endTrackedSession();
 
         startTimeRef.current = null;
+        setStatus(hasFatalErrorRef.current ? "error" : "idle");
       },
 
       "speech-start": () => {
@@ -187,51 +238,7 @@ export function useVapi(book: IBook) {
 
       error: (error: Error) => {
         console.error("Vapi error:", error);
-        // Don't reset isStoppingRef here - delayed events may still fire
-        setStatus("idle");
-        setCurrentMessage("");
-        setCurrentUserMessage("");
-
-        // Stop timer on error
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-
-        // End session tracking on error
-        if (sessionIdRef.current) {
-          endVoiceSessionAction(
-            sessionIdRef.current,
-            durationRef.current,
-          ).catch((err) =>
-            console.error("Failed to end voice session on error:", err),
-          );
-          sessionIdRef.current = null;
-        }
-
-        // Show user-friendly error message
-        const errorMessage = error.message?.toLowerCase() || "";
-        if (
-          errorMessage.includes("timeout") ||
-          errorMessage.includes("silence")
-        ) {
-          setLimitError(
-            "Session ended due to inactivity. Click the mic to start again.",
-          );
-        } else if (
-          errorMessage.includes("network") ||
-          errorMessage.includes("connection")
-        ) {
-          setLimitError(
-            "Connection lost. Please check your internet and try again.",
-          );
-        } else {
-          setLimitError(
-            "Session ended unexpectedly. Click the mic to start again.",
-          );
-        }
-
-        startTimeRef.current = null;
+        markFatalSessionError(error);
       },
     };
 
@@ -244,17 +251,13 @@ export function useVapi(book: IBook) {
       // End active session on unmount
       if (sessionIdRef.current) {
         getVapi().stop();
-        endVoiceSessionAction(sessionIdRef.current, durationRef.current).catch(
-          (err) =>
-            console.error("Failed to end voice session on unmount:", err),
-        );
-        sessionIdRef.current = null;
+        endTrackedSession();
       }
       // Cleanup handlers
       Object.entries(handlers).forEach(([event, handler]) => {
         getVapi().off(event as keyof typeof handlers, handler as () => void);
       });
-      if (timerRef.current) clearInterval(timerRef.current);
+      stopTimer();
     };
   }, []);
 
@@ -265,6 +268,7 @@ export function useVapi(book: IBook) {
     }
 
     setLimitError(null);
+    hasFatalErrorRef.current = false;
     setStatus("connecting");
 
     try {

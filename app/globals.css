@@ -534,6 +534,9 @@
   .vapi-status-dot-speaking {
     @apply bg-green-500 animate-pulse;
   }
+  .vapi-status-dot-error {
+    @apply bg-red-500 animate-pulse;
+  }
   .vapi-status-text {
     @apply text-sm font-medium text-[#212a3b];
     font-family: 'IBM Plex Serif', serif;

@@ -60,6 +60,7 @@ function createBook(): IBook {
 
 describe("useVapi", () => {
   beforeEach(async () => {
+    vi.clearAllMocks();
     for (const k of Object.keys(listeners)) delete listeners[k];
     await vi.resetModules();
   });
@@ -244,4 +245,74 @@ describe("useVapi", () => {
 
     vi.useRealTimers();
   });
+
+  it.each([
+    "send transport changed to disconnected",
+    "recv transport changed to disconnected",
+    "send transport changed to failed",
+    "recv transport changed to failed",
+  ])(
+    "marks transport failures as an error and stops the timer (%s)",
+    async (transportMessage) => {
+      vi.stubEnv("NEXT_PUBLIC_VAPI_API_KEY", "test-key");
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-03-22T20:00:00.000Z"));
+
+      const { default: useVapi } = await import("./useVapi");
+      const { endVoiceSessionAction } =
+        await import("@/lib/actions/session.actions");
+
+      type HookApi = ReturnType<typeof useVapi>;
+      const HookHarness = forwardRef<HookApi, { book: IBook }>(
+        ({ book }, ref) => {
+          const api = useVapi(book);
+          useImperativeHandle(ref, () => api, [api]);
+          return null;
+        },
+      );
+      HookHarness.displayName = "HookHarness";
+
+      const book = createBook();
+      const ref = React.createRef<HookApi>();
+      render(<HookHarness ref={ref} book={book} />);
+      if (!ref.current) throw new Error("ref not set");
+
+      await act(async () => {
+        await ref.current!.start();
+        MockVapi.emit("call-start", undefined);
+      });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3_000);
+      });
+
+      expect(ref.current!.duration).toBe(3);
+
+      await act(async () => {
+        MockVapi.emit("error", new Error(transportMessage));
+      });
+
+      expect(ref.current!.status).toBe("error");
+      expect(ref.current!.limitError).toBe(
+        "Active session failed / disconnected. Click the mic to start again.",
+      );
+      expect(endVoiceSessionAction).toHaveBeenCalledWith("sess_1", 3);
+
+      const durationAfterFailure = ref.current!.duration;
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5_000);
+      });
+
+      expect(ref.current!.duration).toBe(durationAfterFailure);
+
+      await act(async () => {
+        MockVapi.emit("call-end", undefined);
+      });
+
+      expect(ref.current!.status).toBe("error");
+      expect(ref.current!.duration).toBe(durationAfterFailure);
+      vi.useRealTimers();
+    },
+  );
 });

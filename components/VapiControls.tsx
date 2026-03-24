@@ -45,6 +45,8 @@ const VapiControls = ({ book }: { book: IBook }) => {
         return "Thinking";
       case "speaking":
         return "Speaking";
+      case "error":
+        return "Disconnected";
       default:
         return "Ready";
     }
@@ -62,6 +64,8 @@ const VapiControls = ({ book }: { book: IBook }) => {
         return "vapi-status-dot-thinking";
       case "speaking":
         return "vapi-status-dot-speaking";
+      case "error":
+        return "vapi-status-dot-error";
       default:
         return "vapi-status-dot-ready";
     }
@@ -147,6 +151,22 @@ const VapiControls = ({ book }: { book: IBook }) => {
                 </span>
               </div>
             </div>
+
+            {limitError ? (
+              <div className="rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-medium">{limitError}</p>
+                  <button
+                    type="button"
+                    onClick={clearError}
+                    className="shrink-0 rounded-full px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+                    aria-label="Dismiss session message"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </section>
 

@@ -13,7 +13,8 @@ const useVapiState = vi.hoisted(() => ({
     | "starting"
     | "listening"
     | "thinking"
-    | "speaking",
+    | "speaking"
+    | "error",
   duration: 61,
   isActive: true,
   limitError: null as string | null,
@@ -148,6 +149,13 @@ describe("VapiControls", () => {
         dotClass: "vapi-status-dot-thinking",
         timer: "0:02/15:00",
       },
+      {
+        status: "error" as const,
+        duration: 2,
+        label: "Disconnected",
+        dotClass: "vapi-status-dot-error",
+        timer: "0:02/15:00",
+      },
     ];
 
     for (const testCase of cases) {
@@ -174,5 +182,21 @@ describe("VapiControls", () => {
     await waitFor(() => {
       expect(routerReplaceMock).toHaveBeenCalledWith("/");
     });
+  });
+
+  it("shows the active session failure message when the call errors", () => {
+    useVapiState.status = "error";
+    useVapiState.isActive = false;
+    useVapiState.limitError =
+      "Active session failed / disconnected. Click the mic to start again.";
+
+    render(<VapiControls book={createBook()} />);
+
+    expect(screen.getByText("Disconnected")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Active session failed / disconnected. Click the mic to start again.",
+      ),
+    ).toBeInTheDocument();
   });
 });
